@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bipay Wallet UI</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bipay: {
+                            bg: '#0B0F19',
+                            card: '#151C2C',
+                            cardHover: '#1E273B',
+                            primary: '#00E5FF', // Vibrant Cyan/Electric Blue
+                            accent: '#22C55E',  // Success Green / Lime
+                            purple: '#6366F1',
+                            text: '#F8FAFC',
+                            muted: '#94A3B8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom Scrollbar for smooth mobile feel */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        
+        /* Pulse Animation for QR Laser */
+        @keyframes scan {
+            0% { top: 10%; opacity: 0.8; }
+            50% { top: 85%; opacity: 1; }
+            100% { top: 10%; opacity: 0.8; }
+        }
+        .animate-scan {
+            animation: scan 2.5s ease-in-out infinite;
+        }
+        
+        .glow-effect {
+            box-shadow: 0 0 25px -5px rgba(0, 229, 255, 0.25);
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 flex items-center justify-center font-sans p-0 sm:p-4 md:p-6 antialiased select-none">
+
+    <!-- Mobile Frame Container -->
+    <div class="relative w-full max-w-[420px] h-[100vh] sm:h-[880px] bg-bipay-bg sm:rounded-[40px] shadow-2xl border-0 sm:border-[8px] border-slate-800 flex flex-col overflow-hidden">
+        
+        <!-- Top Device Speaker / Notch Bar (Visible on desktop view) -->
+        <div class="hidden sm:flex justify-center pt-2 pb-1 bg-bipay-bg">
+            <div class="w-28 h-4 bg-slate-900 rounded-full flex items-center justify-center space-x-2">
+                <div class="w-10 h-1 bg-slate-800 rounded-full"></div>
+                <div class="w-2 h-2 rounded-full bg-slate-800"></div>
+            </div>
+        </div>
+
+        <!-- App Header Bar -->
+        <header class="px-5 pt-4 pb-3 flex items-center justify-between bg-bipay-bg/90 backdrop-blur-md z-20 border-b border-slate-800/50">
+            <div class="flex items-center space-x-3">
+                <button onclick="switchTab('account')" class="relative focus:outline-none group">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[2px]">
+                        <div class="w-full h-full bg-bipay-card rounded-full flex items-center justify-center overflow-hidden">
+                            <span class="text-sm font-bold text-bipay-primary">JP</span>
+                        </div>
+                    </div>
+                    <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-bipay-bg rounded-full"></span>
+                </button>
+                <div>
+                    <p class="text-xs text-bipay-muted">Hola de nuevo 👋</p>
+                    <h2 class="text-sm font-bold text-white tracking-wide">Juan Pérez</h2>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleBalanceVisibility()" class="p-2 text-slate-400 hover:text-bipay-primary rounded-full hover:bg-slate-800/60 transition-colors">
+                    <i id="eyeIcon" data-lucide="eye" class="w-5 h-5"></i>
+                </button>
+                <button onclick="openNotificationModal()" class="relative p-2 text-slate-400 hover:text-bipay-primary rounded-full hover:bg-slate-800/60 transition-colors">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-bipay-primary rounded-full animate-ping"></span>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-bipay-primary rounded-full"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Main Content Views -->
+        <main id="mainContent" class="flex-1 overflow-y-auto pb-20 relative">
+            
+            <!-- TAB 1: INICIO (HOME) -->
+            <div id="view-inicio" class="view-panel p-5 space-y-6">
+                
+                <!-- Main Balance Card -->
+                <div class="relative bg-gradient-to-br from-bipay-card via-[#1a2336] to-slate-900 border border-slate-800/80 rounded-3xl p-5 glow-effect overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-bipay-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="absolute right-4 top-4 opacity-10">
+                        <i data-lucide="wallet" class="w-24 h-24 text-bipay-primary"></i>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-medium text-bipay-muted uppercase tracking-wider">Saldo Disponible</span>
+                        <span class="text-[10px] bg-bipay-primary/10 text-bipay-primary font-bold px-2.5 py-0.5 rounded-full border border-bipay-primary/20">Bipay Wallet</span>
+                    </div>
+
+                    <div class="my-3">
+                        <div class="flex items-baseline space-x-1">
+                            <span class="text-lg font-bold text-bipay-primary">S/</span>
+                            <span id="balanceValue" class="text-3xl font-extrabold tracking-tight text-white transition-all">1,485.50</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/60 mt-4">
+                        <span class="flex items-center space-x-1">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span class="text-[11px]">Cuenta protegida</span>
+                        </span>
+                        <span class="text-[11px] hover:underline cursor-pointer text-bipay-primary" onclick="switchTab('movimientos')">Ver movimientos &rarr;</span>
+                    </div>
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="grid grid-cols-4 gap-3">
+                    <button onclick="switchTab('qr')" class="flex flex-col items-center group">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform duration-200">
+                            <i data-lucide="qr-code" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[11px] font-medium text-slate-300 mt-2 text-center leading-tight">Pagar con QR</span>
+                    </button>
+
+                    <button onclick="openTransferModal()" class="flex flex-col items-center group">
+                        <div class="w-14 h-14 rounded-2xl bg-bipay-card border border-slate-800 flex items-center justify-center text-bipay-primary group-hover:border-bipay-primary/50 group-hover:scale-105 transition-all duration-200">
+                            <i data-lucide="send" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[11px] font-medium text-slate-300 mt-2 text-center leading-tight">Transferir / Yapear</span>
+                    </button>
+
+                    <button onclick="openTopUpModal()" class="flex flex-col items-center group">
+                        <div class="w-14 h-14 rounded-2xl bg-bipay-card border border-slate-800 flex items-center justify-center text-emerald-400 group-hover:border-emerald-400/50 group-hover:scale-105 transition-all duration-200">
+                            <i data-lucide="plus-circle" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[11px] font-medium text-slate-300 mt-2 text-center leading-tight">Cargar saldo</span>
+                    </button>
+
+                    <button onclick="openWithdrawModal()" class="flex flex-col items-center group">
+                        <div class="w-14 h-14 rounded-2xl bg-bipay-card border border-slate-800 flex items-center justify-center text-amber-400 group-hover:border-amber-400/50 group-hover:scale-105 transition-all duration-200">
+                            <i data-lucide="arrow-down-left" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[11px] font-medium text-slate-300 mt-2 text-center leading-tight">Retirar</span>
+                    </button>
+                </div>
+
+                <!-- Promotions / Banners -->
+                <div class="relative rounded-2xl bg-gradient-to-r from-indigo-900/60 to-purple-900/60 border border-indigo-700/30 p-4 flex items-center justify-between overflow-hidden">
+                    <div class="space-y-1 z-10 max-w-[70%]">
+                        <span class="text-[10px] bg-purple-500/20 text-purple-300 font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Promoción</span>
+                        <h4 class="text-xs font-bold text-white">Cashback del 10% en Pasajes</h4>
+                        <p class="text-[10px] text-slate-300">Pagando con QR Bipay en transportes autorizados.</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center text-purple-300 z-10">
+                        <i data-lucide="sparkles" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions Mini Preview -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-sm font-bold text-white">Últimos movimientos</h3>
+                        <button onclick="switchTab('movimientos')" class="text-xs text-bipay-primary hover:underline">Ver todos</button>
+                    </div>
+                    <div id="recentHomeList" class="space-y-2.5">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: MOVIMIENTOS (TRANSACTIONS) -->
+            <div id="view-movimientos" class="view-panel hidden p-5 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-white">Historial de Movimientos</h2>
+                    <button onclick="exportTransactions()" class="text-xs flex items-center space-x-1 text-bipay-primary bg-bipay-primary/10 px-2.5 py-1.5 rounded-lg">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Reporte</span>
+                    </button>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="space-y-3">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                        <input id="searchInput" oninput="filterTransactions()" type="text" placeholder="Buscar por nombre o referencia..." class="w-full bg-bipay-card border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-bipay-primary">
+                    </div>
+
+                    <div class="flex space-x-2 overflow-x-auto pb-1 text-xs">
+                        <button onclick="setCategoryFilter('all')" id="filter-all" class="filter-btn active bg-bipay-primary text-slate-950 font-bold px-3 py-1.5 rounded-xl whitespace-nowrap">Todos</button>
+                        <button onclick="setCategoryFilter('ingreso')" id="filter-ingreso" class="filter-btn bg-bipay-card text-slate-300 border border-slate-800 px-3 py-1.5 rounded-xl whitespace-nowrap">Ingresos</button>
+                        <button onclick="setCategoryFilter('egreso')" id="filter-egreso" class="filter-btn bg-bipay-card text-slate-300 border border-slate-800 px-3 py-1.5 rounded-xl whitespace-nowrap">Gastos</button>
+                        <button onclick="setCategoryFilter('servicios')" id="filter-servicios" class="filter-btn bg-bipay-card text-slate-300 border border-slate-800 px-3 py-1.5 rounded-xl whitespace-nowrap">Servicios</button>
+                    </div>
+                </div>
+
+                <!-- Transactions Full List -->
+                <div id="fullTransactionsList" class="space-y-2.5 pt-2">
+                    <!-- Dynamic Items -->
+                </div>
+            </div>
+
+            <!-- TAB 3: QR SCANNER VIEW -->
+            <div id="view-qr" class="view-panel hidden p-5 flex flex-col items-center justify-between min-h-[580px]">
+                <div class="text-center space-y-1">
+                    <h2 class="text-lg font-bold text-white">Escanear Código QR</h2>
+                    <p class="text-xs text-slate-400">Apunta al código QR de Bipay, Yape, Plin o POS</p>
+                </div>
+
+                <!-- QR Viewport Finder Simulation -->
+                <div class="relative w-64 h-64 border-2 border-bipay-primary/30 rounded-3xl flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm overflow-hidden my-6">
+                    <!-- Corner Markers -->
+                    <div class="absolute top-3 left-3 w-8 h-8 border-t-4 border-l-4 border-bipay-primary rounded-tl-xl"></div>
+                    <div class="absolute top-3 right-3 w-8 h-8 border-t-4 border-r-4 border-bipay-primary rounded-tr-xl"></div>
+                    <div class="absolute bottom-3 left-3 w-8 h-8 border-b-4 border-l-4 border-bipay-primary rounded-bl-xl"></div>
+                    <div class="absolute bottom-3 right-3 w-8 h-8 border-b-4 border-r-4 border-bipay-primary rounded-br-xl"></div>
+                    
+                    <!-- Laser Line Animation -->
+                    <div class="absolute w-full h-1 bg-gradient-to-r from-transparent via-bipay-primary to-transparent animate-scan left-0 shadow-[0_0_15px_#00E5FF]"></div>
+
+                    <!-- Mock QR inside for simulation click -->
+                    <button onclick="simulateQRScan()" class="group relative flex flex-col items-center justify-center space-y-2 opacity-80 hover:opacity-100 transition-opacity">
+                        <i data-lucide="qr-code" class="w-32 h-32 text-slate-600 group-hover:text-bipay-primary transition-colors"></i>
+                        <span class="text-[10px] bg-bipay-card/90 text-bipay-primary font-semibold px-3 py-1 rounded-full border border-bipay-primary/30">Toca para Simular Pago</span>
+                    </button>
+                </div>
+
+                <!-- Bottom QR Controls -->
+                <div class="w-full space-y-3">
+                    <div class="flex items-center justify-center space-x-6">
+                        <button onclick="toggleFlash()" id="flashBtn" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white">
+                            <div class="w-10 h-10 rounded-full bg-bipay-card border border-slate-800 flex items-center justify-center">
+                                <i data-lucide="zap" class="w-5 h-5"></i>
+                            </div>
+                            <span class="text-[10px]">Linterna</span>
+                        </button>
+                        <button onclick="showMyQRModal()" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white">
+                            <div class="w-10 h-10 rounded-full bg-bipay-card border border-slate-800 flex items-center justify-center">
+                                <i data-lucide="qr-code" class="w-5 h-5"></i>
+                            </div>
+                            <span class="text-[10px]">Mi QR</span>
+                        </button>
+                    </div>
+
+                    <button onclick="simulateQRScan()" class="w-full bg-bipay-primary hover:bg-cyan-400 text-slate-950 font-bold py-3 rounded-2xl text-xs transition-colors shadow-lg shadow-cyan-500/20 flex items-center justify-center space-x-2">
+                        <i data-lucide="camera" class="w-4 h-4"></i>
+                        <span>Simular Escaneo Rápido</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 4: SERVICIOS -->
+            <div id="view-servicios" class="view-panel hidden p-5 space-y-5">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Pago de Servicios</h2>
+                    <p class="text-xs text-slate-400">Paga tus cuentas sin comisiones</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div onclick="openServicePayModal('Luz - Enel / Luz del Sur')" class="bg-bipay-card border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between h-28 hover:border-bipay-primary/50 cursor-pointer transition-all">
+                        <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                            <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">Luz Eléctrica</h4>
+                            <p class="text-[10px] text-slate-400">Enel, Luz del Sur</p>
+                        </div>
+                    </div>
+
+                    <div onclick="openServicePayModal('Agua - Sedapal')" class="bg-bipay-card border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between h-28 hover:border-bipay-primary/50 cursor-pointer transition-all">
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                            <i data-lucide="droplet" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">Agua Potable</h4>
+                            <p class="text-[10px] text-slate-400">Sedapal y provinciales</p>
+                        </div>
+                    </div>
+
+                    <div onclick="openServicePayModal('Recarga Móvil')" class="bg-bipay-card border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between h-28 hover:border-bipay-primary/50 cursor-pointer transition-all">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                            <i data-lucide="smartphone" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">Recarga Celular</h4>
+                            <p class="text-[10px] text-slate-400">Claro, Movistar, Entel, Bitel</p>
+                        </div>
+                    </div>
+
+                    <div onclick="openServicePayModal('Internet y Cable')" class="bg-bipay-card border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between h-28 hover:border-bipay-primary/50 cursor-pointer transition-all">
+                        <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                            <i data-lucide="wifi" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">Internet & TV</h4>
+                            <p class="text-[10px] text-slate-400">Win, Movistar, Claro</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-bipay-card/60 border border-slate-800 rounded-2xl p-4">
+                    <h3 class="text-xs font-bold text-white mb-2">Servicios Frecuentes</h3>
+                    <div class="space-y-3">
+                        <div onclick="openServicePayModal('Sedapal Casa')" class="flex items-center justify-between cursor-pointer">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-blue-400">
+                                    <i data-lucide="droplet" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-semibold text-white">Sedapal Casa</p>
+                                    <p class="text-[10px] text-slate-400">Suministro: 3849102</p>
+                                </div>
+                            </div>
+                            <span class="text-xs text-bipay-primary font-medium">Pagar</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: MI CUENTA -->
+            <div id="view-account" class="view-panel hidden p-5 space-y-5">
+                <div class="flex flex-col items-center text-center space-y-2 pt-2">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[3px]">
+                        <div class="w-full h-full bg-bipay-card rounded-full flex items-center justify-center overflow-hidden">
+                            <span class="text-2xl font-bold text-bipay-primary">JP</span>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-white">Juan Pérez Rodríguez</h3>
+                        <p class="text-xs text-slate-400">+51 987 654 321</p>
+                        <span class="inline-block mt-1 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium">Verificado DNI</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-2">
+                    <div class="bg-bipay-card border border-slate-800/80 rounded-2xl divide-y divide-slate-800/60">
+                        <div class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition-colors">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="user" class="w-4 h-4 text-bipay-primary"></i>
+                                <span class="text-xs font-medium text-slate-200">Datos Personales</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                        </div>
+                        <div class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition-colors">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="lock" class="w-4 h-4 text-bipay-primary"></i>
+                                <span class="text-xs font-medium text-slate-200">Seguridad y Clave PIN</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                        </div>
+                        <div class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition-colors">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="credit-card" class="w-4 h-4 text-bipay-primary"></i>
+                                <span class="text-xs font-medium text-slate-200">Tarjetas Asociadas</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                        </div>
+                        <div class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition-colors">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="help-circle" class="w-4 h-4 text-bipay-primary"></i>
+                                <span class="text-xs font-medium text-slate-200">Centro de Ayuda Bipay</span>
+                            </div>
+                            <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                        </div>
+                    </div>
+
+                    <button onclick="logoutSimulation()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-bold py-3 rounded-2xl text-xs transition-colors flex items-center justify-center space-x-2 mt-4">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Fixed Bottom Navigation Bar -->
+        <nav class="absolute bottom-0 left-0 right-0 h-16 bg-bipay-card/95 backdrop-blur-md border-t border-slate-800/80 px-2 flex items-center justify-around z-30">
+            <button onclick="switchTab('inicio')" id="tab-inicio" class="nav-tab active flex flex-col items-center justify-center w-16 py-1 text-bipay-primary">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium mt-1">Inicio</span>
+            </button>
+
+            <button onclick="switchTab('movimientos')" id="tab-movimientos" class="nav-tab flex flex-col items-center justify-center w-16 py-1 text-slate-400 hover:text-slate-200">
+                <i data-lucide="arrow-left-right" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium mt-1">Movs</span>
+            </button>
+
+            <!-- Center Highlighted QR Button -->
+            <button onclick="switchTab('qr')" id="tab-qr" class="relative -top-4 flex flex-col items-center justify-center">
+                <div class="w-13 h-13 p-3.5 rounded-full bg-gradient-to-tr from-cyan-400 to-emerald-400 text-slate-950 shadow-lg shadow-cyan-500/30 hover:scale-105 transition-transform">
+                    <i data-lucide="qr-code" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[10px] font-medium text-bipay-primary mt-0.5">QR</span>
+            </button>
+
+            <button onclick="switchTab('servicios')" id="tab-servicios" class="nav-tab flex flex-col items-center justify-center w-16 py-1 text-slate-400 hover:text-slate-200">
+                <i data-lucide="grid" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium mt-1">Servicios</span>
+            </button>
+
+            <button onclick="switchTab('account')" id="tab-account" class="nav-tab flex flex-col items-center justify-center w-16 py-1 text-slate-400 hover:text-slate-200">
+                <i data-lucide="user" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium mt-1">Cuenta</span>
+            </button>
+        </nav>
+
+        <!-- MODAL OVERLAY WRAPPER -->
+        <div id="modalOverlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+            <div id="modalCard" class="w-full bg-bipay-card border border-slate-800 rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[85vh] overflow-y-auto transform transition-transform">
+                <!-- Dynamic Modal Content rendered via JS -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // State Management
+        let currentBalance = 1485.50;
+        let isBalanceVisible = true;
+        let isFlashOn = false;
+        let activeFilter = 'all';
+
+        // Mock Transactions Data
+        let transactions = [
+            { id: 'TX-9021', name: 'Plaza Vea Supermercados', date: 'Hoy, 12:45 PM', amount: -84.20, type: 'egreso', status: 'Completado', icon: 'shopping-bag', category: 'compras' },
+            { id: 'TX-9020', name: 'Transferencia de María L.', date: 'Hoy, 09:15 AM', amount: 150.00, type: 'ingreso', status: 'Completado', icon: 'arrow-down-right', category: 'transferencia' },
+            { id: 'TX-9019', name: 'Pago Servicio Sedapal', date: 'Ayer, 06:30 PM', amount: -45.00, type: 'egreso', status: 'Completado', icon: 'droplet', category: 'servicios' },
+            { id: 'TX-9018', name: 'Recarga Bipay Express', date: '28 Oct, 04:10 PM', amount: 200.00, type: 'ingreso', status: 'Completado', icon: 'plus-circle', category: 'recarga' },
+            { id: 'TX-9017', name: 'Starbucks Coffee QR', date: '27 Oct, 10:20 AM', amount: -22.50, type: 'egreso', status: 'Completado', icon: 'coffee', category: 'compras' },
+            { id: 'TX-9016', name: 'Transferencia a Carlos R.', date: '25 Oct, 08:00 PM', amount: -100.00, type: 'egreso', status: 'Pendiente', icon: 'send', category: 'transferencia' }
+        ];
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderTransactions();
+        });
+
+        // Toggle Balance Eye Icon
+        function toggleBalanceVisibility() {
+            isBalanceVisible = !isBalanceVisible;
+            const balanceEl = document.getElementById('balanceValue');
+            const eyeIconEl = document.getElementById('eyeIcon');
+
+            if (isBalanceVisible) {
+                balanceEl.textContent = currentBalance.toLocaleString('es-PE', { minimumFractionDigits: 2 });
+                eyeIconEl.setAttribute('data-lucide', 'eye');
+            } else {
+                balanceEl.textContent = '••••••';
+                eyeIconEl.setAttribute('data-lucide', 'eye-off');
+            }
+            lucide.createIcons();
+        }
+
+        // Navigation Tabs Switching
+        function switchTab(tabId) {
+            // Hide all views
+            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.add('hidden'));
+            
+            // Deactivate all tab buttons
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('text-bipay-primary');
+                tab.classList.add('text-slate-400');
+            });
+
+            // Show targeted view
+            const targetView = document.getElementById(`view-${tabId}`);
+            if (targetView) targetView.classList.remove('hidden');
+
+            // Highlight target tab button
+            const activeTabBtn = document.getElementById(`tab-${tabId}`);
+            if (activeTabBtn) {
+                activeTabBtn.classList.remove('text-slate-400');
+                activeTabBtn.classList.add('text-bipay-primary');
+            }
+        }
+
+        // Render Transactions Lists
+        function renderTransactions() {
+            const homeList = document.getElementById('recentHomeList');
+            const fullList = document.getElementById('fullTransactionsList');
+            const searchVal = (document.getElementById('searchInput')?.value || '').toLowerCase();
+
+            // Filtered logic
+            const filtered = transactions.filter(t => {
+                const matchesCategory = activeFilter === 'all' || 
+                    (activeFilter === 'ingreso' && t.amount > 0) || 
+                    (activeFilter === 'egreso' && t.amount < 0) ||
+                    (activeFilter === 'servicios' && t.category === 'servicios');
+                const matchesSearch = t.name.toLowerCase().includes(searchVal) || t.id.toLowerCase().includes(searchVal);
+                return matchesCategory && matchesSearch;
+            });
+
+            // HTML Generator
+            const buildItemHTML = (t) => `
+                <div class="bg-bipay-card/80 border border-slate-800/80 p-3.5 rounded-2xl flex items-center justify-between hover:bg-bipay-card transition-colors">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl ${t.amount > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-300'} flex items-center justify-center">
+                            <i data-lucide="${t.icon}" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white line-clamp-1">${t.name}</h4>
+                            <div class="flex items-center space-x-2 mt-0.5">
+                                <span class="text-[10px] text-slate-400">${t.date}</span>
+                                <span class="text-[9px] px-1.5 py-0.2 rounded-md ${t.status === 'Completado' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">${t.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-bold ${t.amount > 0 ? 'text-emerald-400' : 'text-slate-100'}">
+                            ${t.amount > 0 ? '+' : ''} S/ ${Math.abs(t.amount).toFixed(2)}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            // Home Preview (first 3)
+            if (homeList) {
+                homeList.innerHTML = transactions.slice(0, 3).map(buildItemHTML).join('');
+            }
+
+            // Full List
+            if (fullList) {
+                if (filtered.length === 0) {
+                    fullList.innerHTML = `
+                        <div class="text-center py-10 space-y-2">
+                            <i data-lucide="inbox" class="w-8 h-8 text-slate-600 mx-auto"></i>
+                            <p class="text-xs text-slate-400">No se encontraron movimientos.</p>
+                        </div>
+                    `;
+                } else {
+                    fullList.innerHTML = filtered.map(buildItemHTML).join('');
+                }
+            }
+
+            lucide.createIcons();
+        }
+
+        // Search & Filter Actions
+        function filterTransactions() {
+            renderTransactions();
+        }
+
+        function setCategoryFilter(category) {
+            activeFilter = category;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-bipay-primary', 'text-slate-950', 'font-bold');
+                btn.classList.add('bg-bipay-card', 'text-slate-300', 'border', 'border-slate-800');
+            });
+
+            const activeBtn = document.getElementById(`filter-${category}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-bipay-card', 'text-slate-300', 'border', 'border-slate-800');
+                activeBtn.classList.add('bg-bipay-primary', 'text-slate-950', 'font-bold');
+            }
+
+            renderTransactions();
+        }
+
+        // Modal Controls
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+        }
+
+        function openModalHTML(htmlContent) {
+            const overlay = document.getElementById('modalOverlay');
+            const card = document.getElementById('modalCard');
+            card.innerHTML = htmlContent;
+            overlay.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // Action Modals
+        function openTransferModal() {
+            openModalHTML(`
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white">Transferir / Yapear</h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="space-y-3 pt-1">
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Celular o Contacto</label>
+                        <input id="transferPhone" type="text" placeholder="Ej. 987 654 321" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-bipay-primary">
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Monto (S/)</label>
+                        <input id="transferAmount" type="number" placeholder="0.00" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-bipay-primary">
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Mensaje (Opcional)</label>
+                        <input id="transferNote" type="text" placeholder="Ej. Almuerzo" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-bipay-primary">
+                    </div>
+                    <button onclick="processTransfer()" class="w-full bg-bipay-primary text-slate-950 font-bold py-3 rounded-xl text-xs transition-colors mt-2">Confirmar Transferencia</button>
+                </div>
+            `);
+        }
+
+        function processTransfer() {
+            const phone = document.getElementById('transferPhone').value || 'Contacto';
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+
+            if (!amount || amount <= 0) {
+                alert('Por favor ingrese un monto válido.');
+                return;
+            }
+
+            if (amount > currentBalance) {
+                alert('Saldo insuficiente para realizar esta operación.');
+                return;
+            }
+
+            currentBalance -= amount;
+            document.getElementById('balanceValue').textContent = currentBalance.toFixed(2);
+
+            transactions.unshift({
+                id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+                name: `Transferencia a ${phone}`,
+                date: 'Ahora mismo',
+                amount: -amount,
+                type: 'egreso',
+                status: 'Completado',
+                icon: 'send',
+                category: 'transferencia'
+            });
+
+            renderTransactions();
+            closeModal();
+            showSuccessToast('¡Transferencia enviada con éxito!');
+        }
+
+        function openTopUpModal() {
+            openModalHTML(`
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white">Cargar Saldo</h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="space-y-3 pt-1">
+                    <p class="text-xs text-slate-400">Selecciona el método para recargar tu cuenta Bipay:</p>
+                    <div class="space-y-2">
+                        <button onclick="processTopUp(50)" class="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between hover:border-bipay-primary">
+                            <span class="text-xs text-white">Tarjeta de Débito / Crédito</span>
+                            <span class="text-xs font-bold text-bipay-primary">+ S/ 50.00</span>
+                        </button>
+                        <button onclick="processTopUp(100)" class="w-full p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between hover:border-bipay-primary">
+                            <span class="text-xs text-white">PagoEfectivo / Agente</span>
+                            <span class="text-xs font-bold text-bipay-primary">+ S/ 100.00</span>
+                        </button>
+                    </div>
+                </div>
+            `);
+        }
+
+        function processTopUp(amount) {
+            currentBalance += amount;
+            document.getElementById('balanceValue').textContent = currentBalance.toFixed(2);
+
+            transactions.unshift({
+                id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+                name: 'Recarga de Saldo Bipay',
+                date: 'Ahora mismo',
+                amount: amount,
+                type: 'ingreso',
+                status: 'Completado',
+                icon: 'plus-circle',
+                category: 'recarga'
+            });
+
+            renderTransactions();
+            closeModal();
+            showSuccessToast(`¡Se han cargado S/ ${amount}.00 a tu cuenta!`);
+        }
+
+        function openWithdrawModal() {
+            openModalHTML(`
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white">Retirar Dinero</h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="space-y-3 pt-1">
+                    <p class="text-xs text-slate-400">Retira tu saldo disponible en agentes autorizados o cuenta bancaria CCI.</p>
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Monto a retirar (S/)</label>
+                        <input id="withdrawAmount" type="number" placeholder="0.00" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-bipay-primary">
+                    </div>
+                    <button onclick="processWithdraw()" class="w-full bg-amber-500 text-slate-950 font-bold py-3 rounded-xl text-xs transition-colors mt-2">Generar Código de Retiro</button>
+                </div>
+            `);
+        }
+
+        function processWithdraw() {
+            const amount = parseFloat(document.getElementById('withdrawAmount').value);
+            if (!amount || amount <= 0 || amount > currentBalance) {
+                alert('Monto inválido o saldo insuficiente.');
+                return;
+            }
+
+            currentBalance -= amount;
+            document.getElementById('balanceValue').textContent = currentBalance.toFixed(2);
+
+            transactions.unshift({
+                id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+                name: 'Retiro en Agente Autorizado',
+                date: 'Ahora mismo',
+                amount: -amount,
+                type: 'egreso',
+                status: 'Pendiente',
+                icon: 'arrow-down-left',
+                category: 'retiro'
+            });
+
+            renderTransactions();
+            closeModal();
+            showSuccessToast('Código de retiro generado: ' + Math.floor(100000 + Math.random() * 900000));
+        }
+
+        function openServicePayModal(serviceName) {
+            openModalHTML(`
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 class="text-sm font-bold text-white">Pago de ${serviceName}</h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="space-y-3 pt-1">
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Código de Suministro / Teléfono</label>
+                        <input type="text" placeholder="Ej. 10293847" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-bipay-primary">
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Monto a Pagar (S/)</label>
+                        <input id="serviceAmount" type="number" value="35.00" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-bipay-primary">
+                    </div>
+                    <button onclick="processServicePay('${serviceName}')" class="w-full bg-bipay-primary text-slate-950 font-bold py-3 rounded-xl text-xs transition-colors mt-2">Pagar Ahora</button>
+                </div>
+            `);
+        }
+
+        function processServicePay(serviceName) {
+            const amount = parseFloat(document.getElementById('serviceAmount').value) || 35.00;
+            if (amount > currentBalance) {
+                alert('Saldo insuficiente.');
+                return;
+            }
+
+            currentBalance -= amount;
+            document.getElementById('balanceValue').textContent = currentBalance.toFixed(2);
+
+            transactions.unshift({
+                id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+                name: `Servicio ${serviceName}`,
+                date: 'Ahora mismo',
+                amount: -amount,
+                type: 'egreso',
+                status: 'Completado',
+                icon: 'file-text',
+                category: 'servicios'
+            });
+
+            renderTransactions();
+            closeModal();
+            showSuccessToast(`Pago realizado exitosamente para ${serviceName}`);
+        }
+
+        function simulateQRScan() {
+            openModalHTML(`
+                <div class="text-center space-y-4 py-2">
+                    <div class="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto">
+                        <i data-lucide="check-circle" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Comercio Detectado</h3>
+                        <p class="text-xs text-slate-400">Bodega "Don José" - QR Bipay</p>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400 block">Monto a Confirmar</span>
+                        <span class="text-xl font-bold text-bipay-primary">S/ 18.50</span>
+                    </div>
+                    <button onclick="confirmQRPayment(18.50, 'Bodega Don José')" class="w-full bg-bipay-primary text-slate-950 font-bold py-3 rounded-xl text-xs">Pagar S/ 18.50</button>
+                    <button onclick="closeModal()" class="w-full bg-slate-800 text-slate-300 font-medium py-2 rounded-xl text-xs">Cancelar</button>
+                </div>
+            `);
+        }
+
+        function confirmQRPayment(amount, merchant) {
+            if (amount > currentBalance) {
+                alert('Saldo insuficiente');
+                return;
+            }
+
+            currentBalance -= amount;
+            document.getElementById('balanceValue').textContent = currentBalance.toFixed(2);
+
+            transactions.unshift({
+                id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+                name: `Pago QR - ${merchant}`,
+                date: 'Ahora mismo',
+                amount: -amount,
+                type: 'egreso',
+                status: 'Completado',
+                icon: 'qr-code',
+                category: 'compras'
+            });
+
+            renderTransactions();
+            closeModal();
+            switchTab('inicio');
+            showSuccessToast(`¡Pago de S/ ${amount.toFixed(2)} realizado!`);
+        }
+
+        function showMyQRModal() {
+            openModalHTML(`
+                <div class="text-center space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <h3 class="text-sm font-bold text-white">Mi Código QR Bipay</h3>
+                        <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl w-48 h-48 mx-auto flex items-center justify-center">
+                        <i data-lucide="qr-code" class="w-40 h-40 text-slate-950"></i>
+                    </div>
+                    <p class="text-xs text-slate-300 font-semibold">Juan Pérez • +51 987 654 321</p>
+                    <p class="text-[10px] text-slate-400">Escanea este código para recibir dinero en tu billetera de forma inmediata.</p>
+                </div>
+            `);
+        }
+
+        function openNotificationModal() {
+            openModalHTML(`
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <h3 class="text-sm font-bold text-white">Notificaciones</h3>
+                        <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-left">
+                            <h4 class="text-xs font-bold text-bipay-primary">¡Cashback Activado!</h4>
+                            <p class="text-[10px] text-slate-300 mt-0.5">Recibe 10% de devolución en tus compras en bodegas seleccionadas.</p>
+                        </div>
+                        <div class="p-3 bg-slate-900 rounded-xl border border-slate-800 text-left">
+                            <h4 class="text-xs font-bold text-emerald-400">Transferencia Exitosa</h4>
+                            <p class="text-[10px] text-slate-300 mt-0.5">Recibiste S/ 150.00 de María L.</p>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function toggleFlash() {
+            isFlashOn = !isFlashOn;
+            const flashBtn = document.getElementById('flashBtn');
+            if (isFlashOn) {
+                flashBtn.classList.add('text-bipay-primary');
+            } else {
+                flashBtn.classList.remove('text-bipay-primary');
+            }
+        }
+
+        function exportTransactions() {
+            showSuccessToast('Descargando reporte de movimientos PDF...');
+        }
+
+        function logoutSimulation() {
+            showSuccessToast('Sesión cerrada correctamente');
+            setTimeout(() => {
+                switchTab('inicio');
+            }, 1000);
+        }
+
+        function showSuccessToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-6 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 px-4 py-2 rounded-full text-xs font-bold shadow-xl z-50 transition-all transform animate-bounce';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+    </script>
+</body>
+</html>
